@@ -56,11 +56,13 @@ a { text-decoration:none; }
     transition:all .15s ease !important;
 }
 [data-testid="stSidebar"] [data-testid="stButton"] > button:hover { background:#1e2a40 !important; }
-[data-testid="stSidebar"] [data-baseweb="radio"] > div   { gap:6px !important; }
-[data-testid="stSidebar"] [data-baseweb="radio"] label   { font-size:13px !important; color:#8892a4 !important; }
-[data-testid="stRadio"] > label { font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"]      { background:#1e2a40 !important; border:none !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"] span { color:#93c5fd !important; }
+[data-testid="stSidebar"] [data-baseweb="radio"] > div       { gap:6px !important; }
+[data-testid="stSidebar"] [data-baseweb="radio"] label       { font-size:13px !important; color:#8892a4 !important; white-space:normal !important; overflow:visible !important; }
+[data-testid="stRadio"] > label                              { font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
+[data-testid="stSidebar"] [data-testid="stTextInput"] label  { white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
+[data-testid="stSidebar"] [data-testid="stMultiSelect"] label{ white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
+[data-testid="stSidebar"] [data-baseweb="tag"]               { background:#1e2a40 !important; border:none !important; }
+[data-testid="stSidebar"] [data-baseweb="tag"] span          { color:#93c5fd !important; }
 
 /* metrics */
 [data-testid="metric-container"] {
@@ -499,7 +501,7 @@ def render_profile(lead_stub: dict):
 
     # ── Full report ────────────────────────────────────────────────────────────
     if lead.get("report_md"):
-        with st.expander("📄 View Full Intelligence Report", expanded=False):
+        with st.expander("View Full Intelligence Report", expanded=False):
             st.markdown(lead["report_md"])
 
 
@@ -591,11 +593,12 @@ def render_sidebar(on_profile: bool) -> tuple:
                 st.rerun()
             return None, None, None, None
 
-        table_label   = st.radio("TYPE", ["🔥  Demo Requests", "📋  Self-Serve"], label_visibility="visible")
+        st.markdown('<div style="font-size:11px;font-weight:600;color:#3d4f6b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Source</div>', unsafe_allow_html=True)
+        table_label   = st.radio("Source", ["Demo Requests", "Self-Serve Signups"], label_visibility="collapsed")
         table         = "demo_requests" if "Demo" in table_label else "signups"
-        search        = st.text_input("SEARCH", placeholder="Name or company…", label_visibility="visible")
-        status_filter = st.multiselect("STATUS", ["enriched","pending","failed"], default=["enriched"])
-        owner_filter  = st.text_input("OWNER",  placeholder="Contact owner…", label_visibility="visible")
+        search        = st.text_input("Search", placeholder="Name or company…", label_visibility="visible")
+        status_filter = st.multiselect("Status", ["enriched","pending","failed"], default=["enriched","pending","failed"])
+        owner_filter  = st.text_input("Owner",  placeholder="Contact owner…", label_visibility="visible")
 
         st.markdown("<hr>", unsafe_allow_html=True)
         if st.button("↺  Refresh", use_container_width=True):
