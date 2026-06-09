@@ -61,8 +61,14 @@ a { text-decoration:none; }
 [data-testid="stRadio"] > label                              { font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
 [data-testid="stSidebar"] [data-testid="stTextInput"] label  { white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
 [data-testid="stSidebar"] [data-testid="stMultiSelect"] label{ white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"]               { background:#1e2a40 !important; border:none !important; }
-[data-testid="stSidebar"] [data-baseweb="tag"] span          { color:#93c5fd !important; }
+/* multiselect tags — visible text on dark bg */
+[data-testid="stSidebar"] [data-baseweb="tag"]        { background:#1e2a40 !important; border:1px solid #2d3f5c !important; }
+[data-testid="stSidebar"] [data-baseweb="tag"] *      { color:#93c5fd !important; }
+/* multiselect dropdown menu — keep it light so options are readable */
+[data-baseweb="popover"] [data-baseweb="menu"]        { background:#ffffff !important; }
+[data-baseweb="popover"] [role="option"]              { background:#ffffff !important; color:#111827 !important; }
+[data-baseweb="popover"] [role="option"]:hover        { background:#f3f4f6 !important; }
+[data-baseweb="popover"] [role="option"][aria-selected="true"] { background:#eff6ff !important; }
 
 /* metrics */
 [data-testid="metric-container"] {
@@ -597,7 +603,7 @@ def render_sidebar(on_profile: bool) -> tuple:
         table_label   = st.radio("Source", ["Demo Requests", "Self-Serve Signups"], label_visibility="collapsed")
         table         = "demo_requests" if "Demo" in table_label else "signups"
         search        = st.text_input("Search", placeholder="Name or company…", label_visibility="visible")
-        status_filter = st.multiselect("Status", ["enriched","pending","failed"], default=["enriched","pending","failed"])
+        status_filter = st.multiselect("Status", ["enriched","pending","failed"], default=[])
         owner_filter  = st.text_input("Owner",  placeholder="Contact owner…", label_visibility="visible")
 
         st.markdown("<hr>", unsafe_allow_html=True)
