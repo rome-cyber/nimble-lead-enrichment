@@ -186,6 +186,8 @@ div[data-testid="stHorizontalBlock"] [data-testid="stButton"] > button:hover { c
 
 /* hide Streamlit chrome */
 [data-testid="collapsedControl"]        { display:none !important; }
+[data-testid="stExpandSidebarButton"]   { display:none !important; }
+[data-testid="stSidebarCollapseButton"] { display:none !important; }
 [data-testid="stToolbar"]               { display:none !important; }
 [data-testid="stDecoration"]            { display:none !important; }
 [data-testid="stStatusWidget"]          { display:none !important; }
@@ -282,12 +284,23 @@ def to_list(val) -> list:
     return []
 
 
+def clean_md(text: str) -> str:
+    """Strip markdown syntax and convert links to HTML for display in cards."""
+    if not text:
+        return text
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+    text = re.sub(r'\[([^\]]+)\]\((https?://[^)]+)\)',
+                  r'<a href="\2" target="_blank" style="color:#4f46e5">\1</a>', text)
+    text = re.sub(r'^\[([^\]]+)\]\s*', r'\1  ', text)
+    return text.strip()
+
+
 def list_rows(items: list, dot: str) -> str:
     if not items:
         return '<p style="color:#9ca3af;font-size:13px;padding:6px 0">None found</p>'
     return "".join(
         f'<div class="lr"><div class="lr-dot" style="background:{dot}"></div>'
-        f'<div class="lr-txt">{item}</div></div>'
+        f'<div class="lr-txt">{clean_md(item)}</div></div>'
         for item in items
     )
 
@@ -296,7 +309,7 @@ def buying_cards(items: list) -> str:
     if not items:
         return '<p style="color:#9ca3af;font-size:13px;padding:8px 0">No buying signals identified</p>'
     return "".join(
-        f'<div class="bs"><span class="bs-dot">◆</span><span class="bs-txt">{item}</span></div>'
+        f'<div class="bs"><span class="bs-dot">◆</span><span class="bs-txt">{clean_md(item)}</span></div>'
         for item in items
     )
 
