@@ -61,10 +61,18 @@ a { text-decoration:none; }
 [data-testid="stRadio"] > label                              { font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
 [data-testid="stSidebar"] [data-testid="stTextInput"] label  { white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
 [data-testid="stSidebar"] [data-testid="stMultiSelect"] label{ white-space:nowrap !important; overflow:visible !important; font-size:11px !important; font-weight:600 !important; color:#3d4f6b !important; text-transform:uppercase !important; letter-spacing:.06em !important; }
-/* multiselect tags — visible text on dark bg */
-[data-testid="stSidebar"] [data-baseweb="tag"]        { background:#1e2a40 !important; border:1px solid #2d3f5c !important; }
+/* multiselect control box — match the dark input style */
+[data-testid="stSidebar"] [data-baseweb="select"] > div:first-child {
+    background:#141b2d !important; border:1px solid #1e2a40 !important;
+    border-radius:8px !important;
+}
+[data-testid="stSidebar"] [data-baseweb="select"] * { color:#e2e8f0 !important; }
+[data-testid="stSidebar"] [data-baseweb="select"] input { color:#e2e8f0 !important; }
+/* multiselect tags */
+[data-testid="stSidebar"] [data-baseweb="tag"]        { background:#1e3a5f !important; border:1px solid #2d4f7c !important; }
 [data-testid="stSidebar"] [data-baseweb="tag"] *      { color:#93c5fd !important; }
-/* multiselect dropdown menu — keep it light so options are readable */
+/* multiselect dropdown — always white/readable (rendered outside sidebar) */
+[data-baseweb="popover"]                              { z-index:9999 !important; }
 [data-baseweb="popover"] [data-baseweb="menu"]        { background:#ffffff !important; }
 [data-baseweb="popover"] [role="option"]              { background:#ffffff !important; color:#111827 !important; }
 [data-baseweb="popover"] [role="option"]:hover        { background:#f3f4f6 !important; }
