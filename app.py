@@ -4,6 +4,7 @@ Nimble Lead Intelligence — v4
 Full profile pages per lead, no signals column.
 """
 
+import json
 import os
 import re
 from datetime import datetime
@@ -178,6 +179,20 @@ div[data-testid="stHorizontalBlock"] [data-testid="stButton"] > button:hover { c
 /* empty state */
 .empty { background:white; border:1px solid #eef0f4; border-radius:16px;
          padding:60px 32px; text-align:center; margin-top:16px; }
+
+/* card spacing — use margin instead of spacer divs */
+.card { margin-bottom:16px; }
+.hero { margin-bottom:16px; }
+
+/* hide Streamlit chrome */
+[data-testid="collapsedControl"]        { display:none !important; }
+[data-testid="stToolbar"]               { display:none !important; }
+[data-testid="stDecoration"]            { display:none !important; }
+[data-testid="stStatusWidget"]          { display:none !important; }
+.stDeployButton                         { display:none !important; }
+#MainMenu                               { display:none !important; }
+footer                                  { display:none !important; }
+[data-testid="stSidebar"] > div:first-child > div:first-child > div[style*="resize"] { display:none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -259,7 +274,6 @@ def to_list(val) -> list:
     if isinstance(val, list):
         return [str(i) for i in val if i]
     if isinstance(val, str):
-        import json
         try:
             parsed = json.loads(val)
             return [str(i) for i in parsed if i] if isinstance(parsed, list) else []
@@ -318,11 +332,6 @@ def render_profile(lead_stub: dict):
     dms    = to_list(lead.get("decision_makers"))
     sigs   = to_list(lead.get("recent_signals"))
     acts   = to_list(lead.get("recent_activity"))
-
-    # Back button
-    if st.button("← Back to leads"):
-        st.session_state.page = "list"
-        st.rerun()
 
     # Quick action chips
     li_chip = (
@@ -424,17 +433,13 @@ def render_profile(lead_stub: dict):
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
-
     # ── Row 2: Buying Signals (full width) ─────────────────────────────────────
     st.markdown(f"""
     <div class="card">
       <div class="sl">🎯 &nbsp;Buying Signals</div>
-      {buying_cards(buying if isinstance(buying, list) else [])}
+      {buying_cards(buying)}
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
     # ── Row 3: Decision Makers + Recent Signals ────────────────────────────────
     c3, c4 = st.columns(2, gap="medium")
@@ -443,7 +448,7 @@ def render_profile(lead_stub: dict):
         st.markdown(f"""
         <div class="card">
           <div class="sl">👥 &nbsp;Decision Makers</div>
-          {list_rows(dms if isinstance(dms, list) else [], "#6366f1")}
+          {list_rows(dms, "#6366f1")}
         </div>
         """, unsafe_allow_html=True)
 
@@ -451,11 +456,9 @@ def render_profile(lead_stub: dict):
         st.markdown(f"""
         <div class="card">
           <div class="sl">📡 &nbsp;Recent Company Signals</div>
-          {list_rows(sigs if isinstance(sigs, list) else [], "#f59e0b")}
+          {list_rows(sigs, "#f59e0b")}
         </div>
         """, unsafe_allow_html=True)
-
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
     # ── Row 4: Competitive Intel ───────────────────────────────────────────────
     st.markdown(f"""
@@ -463,8 +466,8 @@ def render_profile(lead_stub: dict):
       <div class="sl">⚔️ &nbsp;Competitive Intel</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 32px">
         <div>
-          <div class="mf-l">Tools they use</div>
-          <div style="margin-top:6px">{tool_pills(lead.get("competitive_using",""))}</div>
+          <div class="mf-l" style="margin-bottom:8px">Tools they use</div>
+          <div>{tool_pills(lead.get("competitive_using") or "")}</div>
         </div>
         <div>{mf("Displacement Angle", lead.get("competitive_angle"))}</div>
         <div>{mf("Evidence",           lead.get("competitive_evidence"))}</div>
@@ -473,8 +476,7 @@ def render_profile(lead_stub: dict):
     """, unsafe_allow_html=True)
 
     # ── Row 5: Lead Activity ───────────────────────────────────────────────────
-    if isinstance(acts, list) and acts:
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    if acts:
         st.markdown(f"""
         <div class="card">
           <div class="sl">📝 &nbsp;Lead's Recent Activity</div>
@@ -484,7 +486,6 @@ def render_profile(lead_stub: dict):
 
     # ── Full report ────────────────────────────────────────────────────────────
     if lead.get("report_md"):
-        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
         with st.expander("📄 View Full Intelligence Report", expanded=False):
             st.markdown(lead["report_md"])
 
@@ -501,12 +502,13 @@ def render_list(leads: list, table: str):
     </div>
     """, unsafe_allow_html=True)
 
-    # Metrics
+    # Metrics — always count from the full unfiltered list
+    all_leads = load_leads(table)
     m1, m2, m3, m4 = st.columns(4, gap="small")
-    m1.metric("Total",      len(leads))
-    m2.metric("Enriched",   sum(1 for l in leads if l.get("status") == "enriched"))
-    m3.metric("Processing", sum(1 for l in leads if l.get("status") == "pending"))
-    m4.metric("Failed",     sum(1 for l in leads if l.get("status") == "failed"))
+    m1.metric("Total",      len(all_leads))
+    m2.metric("Enriched",   sum(1 for l in all_leads if l.get("status") == "enriched"))
+    m3.metric("Processing", sum(1 for l in all_leads if l.get("status") == "pending"))
+    m4.metric("Failed",     sum(1 for l in all_leads if l.get("status") == "failed"))
 
     if not leads:
         st.markdown("""
