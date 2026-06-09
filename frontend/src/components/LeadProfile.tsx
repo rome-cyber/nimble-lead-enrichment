@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Lead } from '../lib/types'
-import { favUrl, getDomain, fmtDate, toList, cleanMd, avatarColor, initials } from '../lib/utils'
+import { favUrl, getDomain, fmtDate, toList, cleanMd, avatarColor, initials, ensureHttps } from '../lib/utils'
 import StatusBadge from './StatusBadge'
 import ReactMarkdown from 'react-markdown'
 
@@ -10,8 +10,8 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
   const name     = lead.full_name    || '—'
   const company  = lead.company_raw  || '—'
   const title    = lead.lead_title   || '—'
-  const website  = lead.company_website || ''
-  const linkedin = lead.lead_linkedin   || ''
+  const website  = ensureHttps(lead.company_website ?? '')
+  const linkedin = ensureHttps(lead.lead_linkedin ?? '')
   const email    = lead.email           || ''
   const domain   = getDomain(website)
   const fav      = favUrl(website)

@@ -9,8 +9,13 @@ export function initials(name: string) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
 }
 
+export function ensureHttps(url: string): string {
+  if (!url) return ''
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
 export function getDomain(url: string) {
-  return url ? url.replace(/https?:\/\/(www\.)?/, '').split('/')[0] : ''
+  return url ? url.replace(/https?:\/\/(www\.)?/i, '').split('/')[0] : ''
 }
 
 export function favUrl(website: string) {
