@@ -325,9 +325,10 @@ def main():
     log.info(f"Poll interval: {POLL_INTERVAL}s")
 
     # Kill any duplicate monitor processes (keep only this one)
-    import os as _os
+    import os as _os, subprocess as _sp
     my_pid = _os.getpid()
-    for line in __import__('subprocess').check_output(["pgrep", "-f", "monitor.py"]).decode().splitlines():
+    result = _sp.run(["pgrep", "-f", "monitor.py"], capture_output=True, text=True)
+    for line in result.stdout.splitlines():
         pid = int(line.strip())
         if pid != my_pid:
             try:
