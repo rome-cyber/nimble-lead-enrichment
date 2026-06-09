@@ -187,6 +187,18 @@ function extractTools(raw: string): string[] {
     .filter(t => t && t.length > 1 && t.length < 60 && !t.startsWith('—') && !/^\(/.test(t))
 }
 
+// ── Pricing signal extraction from evidence prose ─────────────────────────
+
+function extractPricingSignal(evidence: string): string {
+  if (!evidence) return ''
+  // Match dollar amounts with optional per-unit suffixes, e.g. $199/DVM/month
+  const match = evidence.match(/\$[\d,]+(?:\/[\w]+)*/)
+  if (!match) return ''
+  // Return the price plus any immediately following /unit context (up to 25 chars)
+  const idx = match.index ?? 0
+  return evidence.slice(idx, idx + 25).split(/\s{2,}|[;,]/)[0].trim()
+}
+
 // ── Stale signal detection ─────────────────────────────────────────────────
 
 function daysSinceNewest(allSignals: string[]): number | null {
@@ -219,7 +231,8 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
   const dms    = toList(lead.decision_makers).map(parseDM)
   const sigs   = toList(lead.recent_signals).map(parseTimeline)
   const acts   = toList(lead.recent_activity).map(parseTimeline)
-  const tools  = extractTools(lead.competitive_using || '')
+  const tools         = extractTools(lead.competitive_using || '')
+  const pricingSignal = extractPricingSignal(lead.competitive_evidence || '')
 
   const highUrgencyCount = buying.filter(s => inferUrgency(s) === 'high').length
   const icp              = calcICP(lead, highUrgencyCount)
@@ -373,6 +386,25 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
           </section>
         )}
 
+        {/* ── CALL PREP SUMMARY ───────────────────────────────────────── */}
+        {(lead.company_description || lead.company_stage || lead.lead_background) && (
+          <div className="lp-section" {...delay()}>
+            <SectionLabel>Call Prep</SectionLabel>
+            <div className="space-y-5">
+              {lead.company_description && (
+                <CallPrepField label="What they do" value={lead.company_description} />
+              )}
+              {lead.company_stage && lead.company_stage !== '—' && (
+                <CallPrepField label="Funding & stage" value={lead.company_stage} />
+              )}
+              {lead.lead_background && lead.lead_background !== '—' && (
+                <CallPrepField label="Who they are" value={<BackgroundLines text={lead.lead_background} />} />
+              )}
+            </div>
+            <div className="border-t border-[#eef0f4] mt-5" />
+          </div>
+        )}
+
         {/* ── COMPANY + LEAD PROFILE ───────────────────────────────────── */}
         <div className="lp-section grid grid-cols-2 gap-5" {...delay()}>
           <div className="bg-white rounded-2xl border border-[#eef0f4] shadow-sm p-6">
@@ -397,6 +429,9 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
           <div className="bg-white rounded-2xl border border-[#eef0f4] shadow-sm p-6">
             <SectionLabel>Lead Profile</SectionLabel>
             <FieldList fields={[
+              { label: 'Title',          value: lead.lead_title },
+              { label: 'Background',     value: lead.lead_background ? <BackgroundLines text={lead.lead_background} /> : null },
+              { label: 'Tenure',         value: lead.lead_tenure },
               { label: 'Email', value: email
                   ? <span className="flex items-center gap-2 group/email">
                       <span>{email}</span>
@@ -405,9 +440,6 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
                       </button>
                     </span>
                   : null },
-              { label: 'Title',          value: lead.lead_title },
-              { label: 'Tenure',         value: lead.lead_tenure },
-              { label: 'Background',     value: lead.lead_background },
               { label: 'Verified',       value: lead.lead_verified ? <VerifiedBadge v={lead.lead_verified} /> : null },
               { label: 'LinkedIn',       value: linkedin
                   ? <a href={linkedin} target="_blank" rel="noreferrer" className="text-[#4f46e5] hover:underline inline-flex items-center gap-1">View profile <ExternalLink size={11} /></a>
@@ -440,7 +472,7 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
           <section className="lp-section bg-white rounded-2xl border border-[#eef0f4] shadow-sm p-6" {...delay()}>
             <SectionLabel>Competitive Intel</SectionLabel>
 
-            {tools.length > 0 && (
+            {(tools.length > 0 || pricingSignal) && (
               <div className="mb-6">
                 <FieldLabel>Tools They Use</FieldLabel>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -449,6 +481,11 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
                       {t}
                     </span>
                   ))}
+                  {pricingSignal && (
+                    <span className="px-2.5 py-1 text-xs font-semibold border rounded-md" style={{ color: '#92400e', borderColor: '#fde68a', backgroundColor: '#fffbeb' }}>
+                      Pricing signal: {pricingSignal}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -643,6 +680,45 @@ function VerifiedBadge({ v }: { v: string }) {
           <p className="text-[13px] text-[#6b7280] leading-relaxed pt-2">{detail}</p>
         </div>
       </div>
+    </div>
+  )
+}
+
+function CallPrepField({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-[#9ca3af] uppercase tracking-[0.08em] mb-1">{label}</p>
+      <div className="text-[15px] text-[#374151] leading-relaxed">{value}</div>
+    </div>
+  )
+}
+
+function BackgroundLines({ text }: { text: string }) {
+  // Split on career progression separators: → then ; then commas (if 3+ parts)
+  let lines = text.split(/\s*→\s*/)
+  if (lines.length === 1) lines = text.split(/;\s+/)
+  if (lines.length === 1) {
+    const byComma = text.split(/,\s*/)
+    if (byComma.length >= 3) lines = byComma
+  }
+  // Clean "Prior roles in" prefix from first item
+  lines = lines
+    .map((l, i) => i === 0 ? l.replace(/^Prior roles? in\s+/i, '') : l)
+    .map(l => l.trim())
+    .filter(Boolean)
+
+  if (lines.length <= 1) {
+    return <span className="text-[15px] text-[#374151]">{text}</span>
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => (
+        <p key={i} className={`text-[14px] leading-snug ${i === lines.length - 1 ? 'text-[#374151] font-medium' : 'text-[#6b7280]'}`}>
+          {i > 0 && <span className="text-[#d1d5db] mr-1.5 select-none">→</span>}
+          {line}
+        </p>
+      ))}
     </div>
   )
 }
