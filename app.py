@@ -254,6 +254,20 @@ def tool_pills(s: str) -> str:
     )
 
 
+def to_list(val) -> list:
+    """Safely coerce a Supabase JSONB value to a Python list."""
+    if isinstance(val, list):
+        return [str(i) for i in val if i]
+    if isinstance(val, str):
+        import json
+        try:
+            parsed = json.loads(val)
+            return [str(i) for i in parsed if i] if isinstance(parsed, list) else []
+        except Exception:
+            return []
+    return []
+
+
 def list_rows(items: list, dot: str) -> str:
     if not items:
         return '<p style="color:#9ca3af;font-size:13px;padding:6px 0">None found</p>'
@@ -273,9 +287,20 @@ def buying_cards(items: list) -> str:
     )
 
 
+@st.cache_data(ttl=30)
+def fetch_lead(table: str, lead_id: str) -> dict:
+    """Re-fetch a single lead fresh from Supabase to get all fields."""
+    rows = supabase.table(table).select("*").eq("id", lead_id).execute().data
+    return rows[0] if rows else {}
+
+
 # ── Profile page ───────────────────────────────────────────────────────────────
 
-def render_profile(lead: dict):
+def render_profile(lead_stub: dict):
+    # Re-fetch fresh from Supabase to guarantee all fields are present
+    table = st.session_state.get("selected_table", "demo_requests")
+    lead  = fetch_lead(table, lead_stub.get("id","")) or lead_stub
+
     name     = lead.get("full_name")        or "—"
     company  = lead.get("company_raw")      or "—"
     title    = lead.get("lead_title")       or "—"
@@ -289,10 +314,10 @@ def render_profile(lead: dict):
     domain   = get_domain(website)
     desc     = lead.get("company_description") or ""
 
-    buying = lead.get("buying_signals")  or []
-    dms    = lead.get("decision_makers") or []
-    sigs   = lead.get("recent_signals")  or []
-    acts   = lead.get("recent_activity") or []
+    buying = to_list(lead.get("buying_signals"))
+    dms    = to_list(lead.get("decision_makers"))
+    sigs   = to_list(lead.get("recent_signals"))
+    acts   = to_list(lead.get("recent_activity"))
 
     # Back button
     if st.button("← Back to leads"):
@@ -363,6 +388,8 @@ def render_profile(lead: dict):
     c1, c2 = st.columns(2, gap="medium")
 
     with c1:
+        founded = lead.get("company_founded") or ""
+        web_display = f'<a href="{website}" target="_blank" style="color:#4f46e5">{domain}</a>' if website else "—"
         st.markdown(f"""
         <div class="card">
           <div class="sl">🏢 &nbsp;Company</div>
@@ -372,23 +399,28 @@ def render_profile(lead: dict):
           {mf("Stage",        lead.get("company_stage"))}
           {mf("Size",         lead.get("company_size"))}
           {mf("HQ",           lead.get("company_hq"))}
-          {mf("Website",      f'<a href="{website}" target="_blank" style="color:#4f46e5">{domain}</a>' if website else "—")}
+          {mf("Founded",      founded) if founded else ""}
+          {mf_html("Website", web_display)}
         </div>
         """, unsafe_allow_html=True)
 
     with c2:
+        li_display = f'<a href="{linkedin}" target="_blank" style="color:#4f46e5">View profile ↗</a>' if linkedin else "—"
         st.markdown(f"""
         <div class="card">
           <div class="sl">👤 &nbsp;Lead Profile</div>
-          {mf("Full Name",       name)}
-          {mf("Title",           lead.get("lead_title"))}
-          {mf("Tenure",          lead.get("lead_tenure"))}
-          {mf("Background",      lead.get("lead_background"))}
-          {mf_html("Verified",   verified_html(lead.get("lead_verified","")))}
-          {mf("LinkedIn",        f'<a href="{linkedin}" target="_blank" style="color:#4f46e5">View profile ↗</a>' if linkedin else "—")}
-          {mf("Email",           email or "—")}
-          {mf("Contact Owner",   lead.get("contact_owner"))}
-          {mf("Traffic Source",  lead.get("traffic_source"))}
+          {mf("Full Name",      name)}
+          {mf("First Name",     lead.get("first_name"))}
+          {mf("Last Name",      lead.get("last_name"))}
+          {mf("Email",          email or "—")}
+          {mf("Title",          lead.get("lead_title"))}
+          {mf("Tenure",         lead.get("lead_tenure"))}
+          {mf("Background",     lead.get("lead_background"))}
+          {mf_html("Verified",  verified_html(lead.get("lead_verified","")))}
+          {mf_html("LinkedIn",  li_display)}
+          {mf("Contact Owner",  lead.get("contact_owner"))}
+          {mf("Traffic Source", lead.get("traffic_source"))}
+          {mf("Signup Date",    fmt_date(lead.get("created_at")))}
         </div>
         """, unsafe_allow_html=True)
 
@@ -507,8 +539,9 @@ def render_list(leads: list, table: str):
         c0,c1,c2,c3,c4,c5 = st.columns([2.5, 2.2, 2.2, 1.5, 1.5, 1])
 
         if c0.button(lead.get("full_name") or "—", key=f"r_{table}_{i}"):
-            st.session_state.page         = "profile"
+            st.session_state.page          = "profile"
             st.session_state.selected_lead = lead
+            st.session_state.selected_table = table
             st.rerun()
 
         c1.markdown(f'<div style="display:flex;align-items:center;font-size:14px;color:#374151;padding:4px 0">{fav_tag}{co}</div>', unsafe_allow_html=True)
