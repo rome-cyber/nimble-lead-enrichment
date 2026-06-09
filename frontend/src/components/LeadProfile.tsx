@@ -135,13 +135,44 @@ function calcICP(lead: Lead, highUrgencyCount: number): ICPResult {
 // ── Suggested outreach angle ───────────────────────────────────────────────
 
 function buildOutreachAngle(lead: Lead, buying: string[]): string {
-  const topSignal = buying[0] ? cleanMd(buying[0]) : ''
-  const angle = (lead.competitive_angle || '').replace(/^—\s*/, '').trim()
-  if (!topSignal && !angle) return ''
-  const parts: string[] = []
-  if (topSignal) parts.push(topSignal.replace(/\.?\s*$/, '.'))
-  if (angle)     parts.push(angle.replace(/\.?\s*$/, '.'))
-  return parts.join(' ')
+  const firstName = (lead.full_name || '').split(' ')[0] || ''
+  const company   = (lead.company_raw || '').replace(/,?\s*(Inc\.|LLC|Ltd\.|Corp\.)\s*$/i, '').trim()
+  const title     = lead.lead_title || ''
+  const bg        = (lead.lead_background || '').replace(/^—\s*/, '').trim()
+  const angle     = (lead.competitive_angle || '').replace(/^—\s*/, '').trim()
+  const signal    = buying[0] ? cleanMd(buying[0]) : ''
+
+  if (!angle && !signal) return ''
+
+  // Distill background to most recent/relevant expertise phrase
+  const bgParts  = bg.split(/→|Prior roles? in /i)
+  const bgLatest = (bgParts[bgParts.length - 1] || '').split(/[,;(]/)[0].trim().toLowerCase().replace(/\.$/, '')
+
+  // Strip intent boilerplate from signal, leaving just the business fact
+  const signalFact = signal
+    .replace(/\s*—\s*(direct intent signal|high[- ]?intent|inbound signal|strong signal)[^.]*/gi, '')
+    .replace(/,\s*(direct intent|high[- ]?intent)[^.]*/gi, '')
+    .split(/\s*—\s*/)[0]   // take only the part before any em-dash
+    .replace(/\.$/, '')
+    .trim()
+
+  // Angle: first meaningful clause
+  const angleHook = angle.split(/[;.]/)[0].trim().replace(/\.$/, '')
+
+  if (!angleHook) return ''
+
+  // Template A: background + company context + angle (richest version)
+  if (bgLatest && bgLatest.length > 4 && bgLatest.length < 80 && firstName) {
+    return `${firstName}'s ${bgLatest} background means they'll immediately see the ROI case — and ${company ? `with ${company} ${signalFact.toLowerCase().replace(new RegExp(`^${company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+`, 'i'), '')}` : signalFact.toLowerCase()}, this is exactly the right moment. ${angleHook}.`
+  }
+
+  // Template B: title-led + angle
+  if (title && firstName && signalFact) {
+    return `As ${title}${company ? ` at ${company}` : ''}, ${firstName} owns this decision — ${signalFact.toLowerCase()}. ${angleHook}.`
+  }
+
+  // Template C: minimal — just angle (don't repeat signal)
+  return `${company || 'This company'} is at the right inflection point. ${angleHook}.`
 }
 
 // ── Tool chip extraction ───────────────────────────────────────────────────
@@ -321,10 +352,13 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
 
         {/* ── OUTREACH ANGLE ───────────────────────────────────────────── */}
         {outreachAngle && (
-          <div className="lp-section" {...delay()}>
-            <div style={{ borderLeft: '3px solid #d1d5db', paddingLeft: '16px' }}>
-              <p className="text-[10px] font-semibold text-[#9ca3af] uppercase tracking-[0.1em] mb-2">AI-Suggested Outreach Angle</p>
-              <p className="text-[14px] text-[#6b7280] leading-relaxed">{outreachAngle}</p>
+          <div className="lp-section mt-3" {...delay()}>
+            <div className="rounded-xl px-5 py-4" style={{ borderLeft: '3px solid #4f46e5', backgroundColor: '#f0f4ff' }}>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#6366f1] flex-shrink-0" />
+                <p className="text-[10px] font-semibold text-[#6366f1] uppercase tracking-[0.1em]">AI-Suggested Outreach Angle</p>
+              </div>
+              <p className="text-[14px] text-[#374151] leading-relaxed">{outreachAngle}</p>
             </div>
           </div>
         )}
@@ -379,7 +413,6 @@ export default function LeadProfile({ lead }: { lead: Lead }) {
                   ? <a href={linkedin} target="_blank" rel="noreferrer" className="text-[#4f46e5] hover:underline inline-flex items-center gap-1">View profile <ExternalLink size={11} /></a>
                   : null },
               { label: 'Enriched',       value: fmtDate(lead.enriched_at) },
-              { label: 'Signup Date',    value: fmtDate(lead.created_at) },
               { label: 'Contact Owner',  value: lead.contact_owner  || null },
               { label: 'Traffic Source', value: lead.traffic_source || null },
             ]} />
@@ -513,12 +546,26 @@ const INFLUENCE_BADGE: Record<Influence, { label: string; cls: string } | null> 
 }
 
 function DMRow({ dm }: { dm: DM }) {
+  const isUnidentified = /not identified|unknown/i.test(dm.name)
+
+  if (isUnidentified) {
+    return (
+      <div className="py-3.5 border-b border-[#f3f4f6] last:border-0 opacity-40">
+        <div className="flex items-center gap-2">
+          <span className="text-[14px] text-[#9ca3af]">Not identified</span>
+          {dm.role && <span className="text-[14px] text-[#6b7280]">· {dm.role}</span>}
+        </div>
+        <p className="text-[12px] text-[#9ca3af] mt-1">No public record found</p>
+      </div>
+    )
+  }
+
   const badge = INFLUENCE_BADGE[dm.influence]
   return (
-    <div className={`py-3.5 border-b border-[#f3f4f6] last:border-0 ${dm.influence === 'unknown' ? 'opacity-40' : ''}`}>
+    <div className="py-3.5 border-b border-[#f3f4f6] last:border-0">
       <div className="flex items-center gap-3">
         <div className="flex-1 min-w-0">
-          <span className="text-[15px] font-semibold text-[#0f172a]">{dm.name || '—'}</span>
+          <span className="text-[15px] font-semibold text-[#0f172a]">{dm.name}</span>
           {dm.role && <span className="text-[14px] text-[#6b7280] ml-2">{dm.role}</span>}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -588,13 +635,14 @@ function VerifiedBadge({ v }: { v: string }) {
     <div>
       <button
         onClick={() => detail && setExpanded(o => !o)}
-        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-opacity hover:opacity-80 ${badgeCls} ${detail ? 'cursor-pointer' : 'cursor-default'}`}>
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-opacity hover:opacity-80 ${badgeCls} ${detail ? 'cursor-pointer' : 'cursor-default'}`}>
         {label}
-        {detail && (expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />)}
       </button>
-      {expanded && detail && (
-        <p className="text-[13px] text-[#6b7280] leading-relaxed mt-2">{detail}</p>
-      )}
+      <div className={`lp-evidence ${expanded && detail ? 'lp-evidence-open' : ''}`}>
+        <div>
+          <p className="text-[13px] text-[#6b7280] leading-relaxed pt-2">{detail}</p>
+        </div>
+      </div>
     </div>
   )
 }
