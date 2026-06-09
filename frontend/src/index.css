@@ -7,13 +7,81 @@
 body { margin: 0; background: #f7f8fa; }
 #root { width: 100%; min-height: 100vh; }
 
-/* markdown inside report */
-.report-body h1 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 .5rem; }
-.report-body h2 { font-size: 1rem; font-weight: 700; margin: 1rem 0 .4rem; color: #374151; }
-.report-body p  { font-size: .875rem; color: #4b5563; margin: .25rem 0; }
-.report-body ul { padding-left: 1.25rem; margin: .25rem 0; }
-.report-body li { font-size: .875rem; color: #4b5563; margin: .2rem 0; }
-.report-body hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
-.report-body strong { font-weight: 600; color: #111827; }
-.report-body a  { color: #4f46e5; text-decoration: none; }
-.report-body a:hover { text-decoration: underline; }
+/* ── Shared utilities ─────────────────────────────────────────────────────── */
+
+.lp-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 0.12s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* ── Section entrance animation ──────────────────────────────────────────── */
+
+@keyframes lpFadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes lpFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.lp-section {
+  animation: lpFadeUp 0.38s ease both;
+}
+
+.lp-signal {
+  animation: lpFadeIn 0.3s ease both;
+}
+
+.lp-timeline-entry {
+  animation: lpFadeIn 0.3s ease both;
+}
+
+/* ── Evidence collapse (grid trick — no JS height needed) ─────────────────── */
+
+.lp-evidence {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease;
+  overflow: hidden;
+}
+
+.lp-evidence > * {
+  overflow: hidden;
+}
+
+.lp-evidence-open {
+  grid-template-rows: 1fr;
+}
+
+/* ── Respect reduced-motion preference ────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-section,
+  .lp-signal,
+  .lp-timeline-entry {
+    animation: none !important;
+  }
+
+  .lp-evidence {
+    transition: none !important;
+  }
+}
