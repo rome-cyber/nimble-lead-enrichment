@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { font-family: 'Inter', sans-serif; }
+body { margin: 0; background: #f7f8fa; }
+#root { width: 100%; min-height: 100vh; }
+
+/* markdown inside report */
+.report-body h1 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 .5rem; }
+.report-body h2 { font-size: 1rem; font-weight: 700; margin: 1rem 0 .4rem; color: #374151; }
+.report-body p  { font-size: .875rem; color: #4b5563; margin: .25rem 0; }
+.report-body ul { padding-left: 1.25rem; margin: .25rem 0; }
+.report-body li { font-size: .875rem; color: #4b5563; margin: .2rem 0; }
+.report-body hr { border: none; border-top: 1px solid #e5e7eb; margin: 1rem 0; }
+.report-body strong { font-weight: 600; color: #111827; }
+.report-body a  { color: #4f46e5; text-decoration: none; }
+.report-body a:hover { text-decoration: underline; }
