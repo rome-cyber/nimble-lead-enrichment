@@ -93,14 +93,13 @@ div[data-testid="stHorizontalBlock"] [data-testid="stButton"] > button:hover { c
 [data-testid="stExpander"] summary { font-size:13px !important; font-weight:600 !important; color:#374151 !important; }
 
 /* animations */
-@keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.5} }
 
 /* profile hero card */
 .hero { background:white; border-radius:16px; border:1px solid #eef0f4;
         box-shadow:0 2px 12px rgba(0,0,0,.06); overflow:hidden;
-        animation:fadeUp .3s ease both; margin-bottom:20px; }
+        animation:fadeIn .25s ease both; margin-bottom:20px; }
 .hero-body { padding:32px; }
 
 /* avatar */
@@ -131,8 +130,7 @@ div[data-testid="stHorizontalBlock"] [data-testid="stButton"] > button:hover { c
 
 /* section cards */
 .card { background:white; border-radius:14px; border:1px solid #eef0f4;
-        box-shadow:0 1px 4px rgba(0,0,0,.04); padding:24px 28px;
-        animation:fadeUp .35s ease both; height:100%; }
+        box-shadow:0 1px 4px rgba(0,0,0,.04); padding:24px 28px; height:100%; }
 
 /* section label */
 .sl { font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase; letter-spacing:.08em; margin-bottom:18px; }
@@ -507,8 +505,12 @@ def render_profile(lead_stub: dict):
 
     # ── Full report ────────────────────────────────────────────────────────────
     if lead.get("report_md"):
+        # Strip agent preamble (everything before the first --- divider)
+        rmd = lead["report_md"]
+        if "---" in rmd:
+            rmd = rmd[rmd.index("---"):]
         with st.expander("View Full Intelligence Report", expanded=False):
-            st.markdown(lead["report_md"])
+            st.markdown(rmd)
 
 
 # ── Lead list page ─────────────────────────────────────────────────────────────
